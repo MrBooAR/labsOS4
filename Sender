@@ -1,6 +1,8 @@
+#pragma warning(disable : 4996)
 #include <iostream>
 #include <windows.h>
 #include <fstream>
+#include <string>
 using namespace std;
 CRITICAL_SECTION criticalSection;
 const size_t MAX_MESSAGE_SIZE = 200;
