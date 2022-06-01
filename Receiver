@@ -1,0 +1,48 @@
+#include <iostream>
+#include <windows.h>
+#include <process.h>
+#include <string>
+using namespace std;
+CRITICAL_SECTION criticalSection;
+const size_t MAX_MESSAGE_SIZE = 200;
+int main() {
+    InitializeCriticalSection(&criticalSection);
+    char* fileName = new char[MAX_MESSAGE_SIZE];
+    cout << "Enter name of file:" << endl;
+    cin >> fileName;
+    int sendersNumber;
+    cout << "Enter number of senders:" << endl;
+    cin >> sendersNumber;
+    STARTUPINFO* startupInfo = new STARTUPINFO[sendersNumber];
+    PROCESS_INFORMATION* processInformation = new PROCESS_INFORMATION[sendersNumber];
+    HANDLE* events = new HANDLE[sendersNumber];
+    HANDLE* senders = new HANDLE[sendersNumber];
+    SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), 0, TRUE };
+    HANDLE startEvent = CreateEvent(&securityAttributes, FALSE, FALSE, LPCWSTR("StartEvent"));
+    for (int i = 0; i < sendersNumber; i++) {
+        char* dataForSender = new char[MAX_MESSAGE_SIZE];
+        strcpy(dataForSender, "");
+        strcat(dataForSender, "Sender.exe");
+        strcat(dataForSender, fileName);
+        ZeroMemory(&startupInfo[i], sizeof(STARTUPINFO));
+        ZeroMemory(&processInformation[i], sizeof(PROCESS_INFORMATION));
+        startupInfo[i].cb = sizeof(STARTUPINFO);
+        char* tmp = new char[20];
+        char p[10];
+        strcpy(tmp, "Event");
+        strcat(tmp, itoa(i, p, 10));
+        strcat(dataForSender, " ");
+        strcat(dataForSender, tmp);
+        events[i] = CreateEvent(&securityAttributes, FALSE, FALSE, LPCWSTR(tmp));
+        if (!CreateProcess(NULL, LPWSTR(dataForSender),
+            NULL, NULL, TRUE,
+            CREATE_NEW_CONSOLE, NULL,
+            NULL, &startupInfo[i], &processInformation[i])) {
+            cout << "Error" << endl;
+            cout << "Process is not created" << endl;;
+            return GetLastError();
+        }
+        senders[i] = processInformation[i].hProcess;
+    }
+    return 0;
+}
