@@ -1,0 +1,40 @@
+#include <iostream>
+#include <windows.h>
+#include <fstream>
+using namespace std;
+CRITICAL_SECTION criticalSection;
+const size_t MAX_MESSAGE_SIZE = 200;
+int main(int argc, char** argv) {
+    InitializeCriticalSection(&criticalSection);
+    char* fileName = new char[MAX_MESSAGE_SIZE];
+    strcpy(fileName, argv[1]);
+    char* eventName = new char[MAX_MESSAGE_SIZE];
+    strcpy(eventName, argv[2]);
+    HANDLE event = OpenEvent(EVENT_MODIFY_STATE, FALSE, LPCWSTR(fileName));
+    HANDLE synchronisedEvent = OpenEvent(SYNCHRONIZE, FALSE, LPCWSTR(eventName));
+    ofstream fout;
+    fout.open(fileName, ios::binary);
+    if (fout.is_open()!= false) {
+        cout << "Error" << endl;
+        cout << "File is not open" << endl;
+        return -1;
+    }
+    SignalObjectAndWait(event, synchronisedEvent, INFINITE, FALSE);
+    char* message;
+    while (true) {
+        cout << "Enter message or '0' to stop"<< endl;
+        cin.getline(message, MAX_MESSAGE_SIZE);
+        if (!strcmp(message, "0")) {
+            break;
+        }
+        EnterCriticalSection(&criticalSection);
+        fout.write(message, sizeof(message));
+        SetEvent(synchronisedEvent);
+        LeaveCriticalSection(&criticalSection);
+    }
+    fout.close();
+    CloseHandle(event);
+    CloseHandle(synchronisedEvent);
+    DeleteCriticalSection(&criticalSection);
+    return 0;
+}
