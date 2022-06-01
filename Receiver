@@ -44,5 +44,37 @@ int main() {
         }
         senders[i] = processInformation[i].hProcess;
     }
+     WaitForMultipleObjects(sendersNumber, events, TRUE, INFINITE);
+    SetEvent(startEvent);
+    while (WaitForMultipleObjects(sendersNumber, senders, TRUE, 0) == WAIT_TIMEOUT) {
+        EnterCriticalSection(&criticalSection);
+        cout << "Input 'E' for trying to read file: " << endl;
+        char* command;
+        cin >> command;
+        if (strcmp(command, "E")) {
+            break;
+        }
+        ifstream fin;
+        if (fin.is_open() != false) {
+            fin.open(fileName, fstream::binary);
+            char* message;
+            for (int i = 0;i < 2;i++) {
+                fin.read(message, sizeof(message));
+                cout << message << " ";
+            }
+            fin.close();
+        }
+        else {
+            cout << "Error" << endl;
+            cout << "File is not open" << endl;
+        }
+        LeaveCriticalSection(&criticalSection);
+    }
+    for (int i = 0; i < sendersNumber; i++) {
+        CloseHandle(processInformation[i].hThread);
+        CloseHandle(processInformation[i].hProcess);
+        CloseHandle(events[i]);
+    }
+    CloseHandle(startEvent);
     return 0;
 }
